@@ -2,9 +2,11 @@
 
 **Hourly PM2.5 and PM10 from Kraków's official stations, a 3-day forecast checked against the measurements, and the best hours for a run, a walk with a child or airing the flat.**
 
-**Current version:** 0.1.0
+**Current version:** 0.1.1
 
 Live: https://kostasxeras.com/smog-planner/
+
+![Smog Planner on desktop](docs/screenshots/desktop.webp)
 
 ## The question
 
@@ -33,7 +35,7 @@ Full detail in the [case study](docs/case-study.md).
 
 - **The official API cannot be used from a web page** (confirmed). Browser requests to the GIOŚ API fail, while the same addresses open directly. Requests also failed with HTTP 406 until the Accept header allowed any type. Hence the hourly job.
 - **Not every station publishes hourly PM data** (confirmed). On the first run, 4 of the 9 Kraków stations returned hourly PM2.5 or PM10, and only Aleja Krasińskiego returned both. The other sensors answered HTTP 400. The app labels those stations "forecast only".
-- **How far the forecast model is from the stations** (to measure). The page shows the gap station by station. Findings across stations need a few weeks of history: [result].
+- **The model can be far from the station** (early observation, one station, about two days). On 21 November 2026, over the previous 56 hours at Aleja Krasińskiego, the station measured 5.4 µg/m³ of PM2.5 on average and the CAMS model 12.6 µg/m³, a mean hourly gap of 7.9 µg/m³. One clean-air period at one station is not a pattern. Findings across stations need a few weeks of history: [result].
 
 ## Data and sources
 
