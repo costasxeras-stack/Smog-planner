@@ -19,7 +19,7 @@ DATA = os.path.join(HERE, "..", "data")
 def get(url, tries=3):
     for i in range(tries):
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "smog-planner (github.com/costasxeras-stack/smog-planner)", "Accept": "application/json"})
+            req = urllib.request.Request(url, headers={"User-Agent": "smog-planner (github.com/costasxeras-stack/smog-planner)", "Accept": "*/*"})
             with urllib.request.urlopen(req, timeout=30) as r:
                 return json.load(r)
         except Exception as e:  # noqa: BLE001
