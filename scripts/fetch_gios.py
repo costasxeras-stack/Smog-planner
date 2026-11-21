@@ -5,7 +5,7 @@ Run by .github/workflows/fetch.yml every hour. Writes:
   data/history.json  hourly values per station, kept for 60 days (for the hour-of-day pattern)
 GIOŚ API: https://api.gios.gov.pl/pjp-api/ (v1). Times are Polish local time as published.
 """
-import json, os, sys, time, urllib.request
+import json, os, sys, time, urllib.error, urllib.request
 from datetime import datetime, timedelta, timezone
 
 API = "https://api.gios.gov.pl/pjp-api/v1/rest"
@@ -22,6 +22,12 @@ def get(url, tries=3):
             req = urllib.request.Request(url, headers={"User-Agent": "smog-planner (github.com/costasxeras-stack/smog-planner)", "Accept": "*/*"})
             with urllib.request.urlopen(req, timeout=30) as r:
                 return json.load(r)
+        except urllib.error.HTTPError as e:
+            print(f"{e.code} {url}", file=sys.stderr)
+            if 400 <= e.code < 500:
+                return None
+            time.sleep(3 * (i + 1))
+            continue
         except Exception as e:  # noqa: BLE001
             print(f"retry {i + 1} {url}: {e}", file=sys.stderr)
             time.sleep(3 * (i + 1))
@@ -32,6 +38,10 @@ def series(sensor_id):
     out = {}
     for page in range(0, 4):
         j = get(f"{API}/data/getData/{sensor_id}?size=100&page={page}")
+        if not j and page == 0:
+            j = get(f"{API}/data/getData/{sensor_id}")  # some sensors reject paging parameters
+            if j:
+                page = 99
         if not j:
             break
         rows = j.get("Lista danych pomiarowych") or []
@@ -39,7 +49,7 @@ def series(sensor_id):
             v = r.get("Wartość")
             if v is not None:
                 out[r["Data"][:16]] = round(float(v), 1)
-        if len(rows) < 100:
+        if len(rows) < 100 or page == 99:
             break
     return out
 
