@@ -2,6 +2,16 @@
 
 All notable changes to this project. Versions follow [docs/versioning.md](docs/versioning.md).
 
+## [0.1.1] - 2026-11-21
+
+### Fixed
+- "Now" and the planner use Polish time in any browser time zone. Before, a browser outside Poland shifted the current hour against the measurement times.
+- The screenshot job runs in Polish time.
+
+### Added
+- Station list marks stations without hourly measurements as "forecast only".
+- First observation from live data in the case study (one station, about two days).
+
 ## [0.1.0] - 2026-11-21
 
 First release.

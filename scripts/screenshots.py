@@ -15,7 +15,8 @@ async def main():
         async with async_playwright() as p:
             b = await p.chromium.launch()
             for name, w, h, dsf in [("desktop", 1280, 1440, 1), ("mobile", 390, 844, 2)]:
-                pg = await b.new_page(viewport={"width": w, "height": h}, device_scale_factor=dsf)
+                ctx = await b.new_context(viewport={"width": w, "height": h}, device_scale_factor=dsf, timezone_id="Europe/Warsaw", locale="pl-PL")
+                pg = await ctx.new_page()
                 await pg.goto("http://localhost:8099/")
                 await pg.wait_for_function("document.querySelectorAll('#wins .win').length > 0", timeout=30000)
                 await pg.wait_for_timeout(800)

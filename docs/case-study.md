@@ -18,9 +18,9 @@ Browser requests to the GIOŚ API fail, while the same addresses open directly. 
 
 On the first run, 4 of the 9 Kraków stations returned hourly PM2.5 or PM10, and only Aleja Krasińskiego returned both. The other sensors answered HTTP 400. The app labels those stations "forecast only".
 
-### 3. How far the forecast model is from the stations (to measure)
+### 3. The model can be far from the station (early observation, one station, about two days)
 
-The page shows the gap station by station. Findings across stations need a few weeks of history: [result].
+On 21 November 2026, over the previous 56 hours at Aleja Krasińskiego, the station measured 5.4 µg/m³ of PM2.5 on average and the CAMS model 12.6 µg/m³, a mean hourly gap of 7.9 µg/m³. One clean-air period at one station is not a pattern. Findings across stations need a few weeks of history: [result].
 
 ## Decisions
 
