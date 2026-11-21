@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smog Planner · kiedy wyjść w Krakowie</title>
+<meta name="description" content="Pomiary pyłu PM2.5 i PM10 z 9 stacji GIOŚ w Krakowie, prognoza na 3 dni i najlepsze godziny na bieg, spacer z dzieckiem albo wietrzenie mieszkania.">
+<meta name="theme-color" content="#37474f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2337474f'/%3E%3Cpath d='M6 12c4-3 6 3 10 0s6 3 10 0M6 18c4-3 6 3 10 0s6 3 10 0M6 24c4-3 6 3 10 0s6 3 10 0' stroke='white' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,600;7..72,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css?v=1">
+<style>
+:root{--accent:#37474f;--soft:#eceff1;--b0:#57b108;--b1:#b0dd10;--b2:#ffd911;--b3:#e58100;--b4:#e50000;--b5:#990000}
+.intro .kicker{font:600 12.5px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.top-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+.now{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.now .box{border-radius:14px;padding:14px;color:#fff;position:relative}
+.now .box b{font:700 34px/1 var(--display);display:block}
+.now .box span{font-size:13px;opacity:.95}
+.now .box .band{font:600 14px var(--body);margin-top:6px;display:block}
+.now .box.light{color:#1f1d1a}
+.src{font-size:12.5px;color:var(--muted);margin-top:8px}
+.pick{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.win{display:grid;grid-template-columns:110px 1fr 90px;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px;font-size:14.5px}
+.win.best{border:2px solid #2e7d32;background:#f1f8f1}
+.win.worst{border-color:#ffcdd2;background:#fff5f5}
+.win .t{font-weight:700}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:6px}
+svg text{font:11.5px var(--body);fill:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;margin-top:6px}
+.legend i{display:inline-block;width:14px;height:10px;border-radius:2px;margin-right:5px;vertical-align:0}
+.check{background:var(--soft);border-radius:12px;padding:12px 14px;font-size:14.5px;margin-top:10px}
+.hours{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;margin-top:10px}
+.hours div{height:46px;border-radius:4px;position:relative}
+.hours span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:10.5px;color:var(--faint)}
+@media (max-width:900px){.top-row{grid-template-columns:1fr}}
+@media (max-width:600px){.win{grid-template-columns:90px 1fr 70px;font-size:13.5px}.hours span{display:none}.hours span.k{display:block}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="./"><i><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6c2-1.5 3 1.5 6 0s4 1.5 6 0M2 10c2-1.5 3 1.5 6 0s4 1.5 6 0" stroke="white" stroke-width="1.5" fill="none"/></svg></i>Smog Planner</a>
+  <nav><a class="hide-sm" href="https://github.com/costasxeras-stack/smog-planner">GitHub</a><a href="https://kostasxeras.com/">Portfolio</a></nav>
+</div></header>
+<main class="wrap">
+  <section class="intro">
+    <span class="kicker">Kraków · jakość powietrza · godzina po godzinie</span>
+    <h1>Kiedy dziś wyjść, a kiedy zamknąć okno.</h1>
+    <p>Pomiary pyłu z 9 stacji GIOŚ w Krakowie, prognoza na trzy dni i proste pytanie: kiedy w najbliższych godzinach powietrze będzie najczystsze na bieg, spacer z dzieckiem albo wietrzenie mieszkania.</p>
+    <p class="note" style="margin-top:6px">In English: hourly PM2.5 and PM10 from Kraków's 9 official stations plus a 3-day model forecast, and the best hours for a run, a walk or airing the flat. Not medical advice.</p>
+  </section>
+
+  <div class="top-row">
+    <section class="card" style="margin-top:0">
+      <h2>Teraz</h2>
+      <div class="row" style="margin-top:6px"><select id="station" aria-label="Stacja" style="max-width:300px"></select><button class="btn small" type="button" id="near">Najbliższa stacja</button></div>
+      <div class="now" id="now"></div>
+      <p class="src" id="now-src"></p>
+    </section>
+    <section class="card" style="margin-top:0">
+      <h2>Zaplanuj</h2>
+      <div class="pick" role="group" aria-label="Aktywność" id="acts"></div>
+      <div class="pick" role="group" aria-label="Wrażliwość" id="sens"></div>
+      <div id="wins"></div>
+      <p class="src" id="win-note"></p>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Ostatnie dwa dni i prognoza</h2>
+    <p class="sub">PM2.5, µg/m³. Linia ciągła to pomiar stacji, przerywana to model. Tło pokazuje progi indeksu jakości powietrza GIOŚ.</p>
+    <div class="row" style="margin-top:0"><div class="seg" role="group" aria-label="Zanieczyszczenie"><button type="button" data-pol="pm25" aria-pressed="true">PM2.5</button><button type="button" data-pol="pm10" aria-pressed="false">PM10</button></div><label style="display:flex;gap:8px;align-items:center;margin:0;font-weight:500"><input type="checkbox" id="corr" checked> Popraw prognozę o błąd modelu z ostatnich 2 dni</label></div>
+    <svg id="chart" viewBox="0 0 900 300" role="img" aria-label="Wykres pyłu w czasie" style="width:100%;height:auto;margin-top:8px"></svg>
+    <div class="legend" id="legend"></div>
+    <div class="check" id="check"></div>
+  </section>
+
+  <section class="card">
+    <h2>O której zwykle jest najgorzej</h2>
+    <p class="sub" id="pat-sub">Średni PM2.5 o każdej godzinie dnia na wybranej stacji, z zebranych pomiarów.</p>
+    <div class="hours" id="hours"></div>
+    <p class="src" id="pat-note" style="margin-top:26px"></p>
+  </section>
+
+  <section class="card">
+    <h2>Jak to działa</h2>
+    <ul class="sub" style="padding-left:20px;display:grid;gap:6px">
+      <li><b>Pomiary:</b> GIOŚ nie pozwala czytać swojego API bezpośrednio ze strony w przeglądarce. Dlatego co godzinę automatyczne zadanie na GitHubie pobiera pomiary PM10 i PM2.5 z 9 krakowskich stacji i zapisuje je w tym repozytorium. Pomiary GIOŚ to dane bieżące, niezweryfikowane.</li>
+      <li><b>Prognoza:</b> model CAMS (Copernicus) przez Open-Meteo, w siatce kilkunastu kilometrów. Model wygładza lokalne różnice, dlatego porównuję go z pomiarem stacji z ostatnich 2 dni i mogę skorygować prognozę o średni stosunek pomiaru do modelu (w granicach od 0,5 do 2).</li>
+      <li><b>Najlepsze okno:</b> dla każdej godziny startu od teraz do 36 godzin naprzód, między 6:00 a 22:00, liczę średni prognozowany PM2.5 w czasie aktywności i wybieram najniższe. Kategoria okna to gorsza z kategorii PM2.5 i PM10.</li>
+      <li><b>Progi indeksu GIOŚ</b> (µg/m³, PM10 / PM2.5): bardzo dobry do 20 / 13, dobry do 50 / 35, umiarkowany do 80 / 55, dostateczny do 110 / 75, zły do 150 / 110, bardzo zły powyżej.</li>
+    </ul>
+    <p class="note">To nie jest porada medyczna. Osoby z astmą, chorobami serca, dzieci i seniorzy powinni kierować się zaleceniami lekarza i komunikatami GIOŚ.</p>
+    <h3 style="font:600 15px var(--body);margin-top:14px">Źródła</h3>
+    <ul class="sub" style="padding-left:20px;display:grid;gap:4px">
+      <li><a href="https://powietrze.gios.gov.pl/">GIOŚ, portal Jakość Powietrza</a> i <a href="https://api.gios.gov.pl/pjp-api/swagger-ui/">API GIOŚ</a>: pomiary.</li>
+      <li><a href="https://open-meteo.com/en/docs/air-quality-api">Open-Meteo Air Quality API</a>, dane CAMS (Copernicus Atmosphere Monitoring Service): prognoza.</li>
+      <li><a href="https://ios.edu.pl/en/air-quality-forecast/">Instytut Ochrony Środowiska</a>: progi indeksu jakości powietrza.</li>
+    </ul>
+  </section>
+</main>
+<footer><div class="wrap"><span>Smog Planner v0.1.0 · <a href="https://kostasxeras.com/">Konstantinos Xeras</a>, zbudowane z Claude (Anthropic). Dane: GIOŚ, CAMS przez Open-Meteo. <a href="https://github.com/costasxeras-stack/smog-planner">Kod i decyzje na GitHubie</a>.</span></div></footer>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  var ST = [[400, 'Aleja Krasińskiego', 50.057678, 19.926189], [401, 'ul. Bujaka', 50.010575, 19.949189], [402, 'ul. Bulwarowa', 50.069308, 20.053492], [10123, 'ul. Złoty Róg', 50.081197, 19.895358], [10139, 'Os. Piastów', 50.098508, 20.018269], [10447, 'Os. Wadów', 50.100569, 20.122561], [11303, 'Os. Swoszowice', 49.991442, 19.936792], [16896, 'ul. Kamieńskiego', 50.024605, 19.97846], [20367, 'ul. Półłanki', 50.034702, 20.044386]];
+  var BANDS = { pm10: [20, 50, 80, 110, 150], pm25: [13, 35, 55, 75, 110] };
+  var NAMES = ['bardzo dobry', 'dobry', 'umiarkowany', 'dostateczny', 'zły', 'bardzo zły'];
+  var COLS = ['#57b108', '#b0dd10', '#ffd911', '#e58100', '#e50000', '#990000'];
+  var band = function (p, v) { var b = BANDS[p]; for (var i = 0; i < b.length; i++) if (v <= b[i]) return i; return 5; };
+  var ACTS = [['run', 'Bieg', 1], ['walk', 'Spacer z dzieckiem', 1], ['bike', 'Rower', 2], ['air', 'Wietrzenie', 1]];
+  var SENS = [['normal', 'Zwykle'], ['sens', 'Jestem wrażliwy']];
+  var st = { station: 400, act: 'run', sens: 'normal', pol: 'pm25' }, M = null, F = {};
+  try { var sv = JSON.parse(localStorage.getItem('smog') || '{}'); Object.keys(sv).forEach(function (k) { if (k in st) st[k] = sv[k]; }); } catch (e) {}
+  function save() { try { localStorage.setItem('smog', JSON.stringify(st)); } catch (e) {} }
+  $('station').innerHTML = ST.map(function (s) { return '<option value="' + s[0] + '">' + esc(s[1]) + '</option>'; }).join('');
+  $('station').value = st.station;
+  function pills() {
+    $('acts').innerHTML = ACTS.map(function (a) { return '<button type="button" class="chip" data-act="' + a[0] + '" aria-pressed="' + (st.act === a[0]) + '">' + a[1] + '</button>'; }).join('');
+    $('sens').innerHTML = SENS.map(function (a) { return '<button type="button" class="chip" data-sens="' + a[0] + '" aria-pressed="' + (st.sens === a[0]) + '">' + a[1] + '</button>'; }).join('');
+  }
+  var key = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':00'; };
+  var parse = function (k) { return new Date(k.replace(' ', 'T') + ':00'); };
+
+  function meas(p) { if (!M) return []; var s = M.stations.filter(function (x) { return x.id === +st.station; })[0]; return s ? s[p] : []; }
+  function loadForecast() {
+    var s = ST.filter(function (x) { return x[0] === +st.station; })[0];
+    if (F[s[0]]) return Promise.resolve(F[s[0]]);
+    return fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + s[2] + '&longitude=' + s[3] + '&hourly=pm10,pm2_5&past_days=2&forecast_days=3&timezone=Europe%2FWarsaw')
+      .then(function (r) { return r.json(); }).then(function (j) { var h = j.hourly, o = { pm10: [], pm25: [] }; h.time.forEach(function (t, i) { var k = t.replace('T', ' '); if (h.pm10[i] != null) o.pm10.push([k, h.pm10[i]]); if (h.pm2_5[i] != null) o.pm25.push([k, h.pm2_5[i]]); }); F[s[0]] = o; return o; });
+  }
+  function ratio(p, fc) {
+    var m = {}; meas(p).forEach(function (x) { m[x[0]] = x[1]; });
+    var a = 0, b = 0, n = 0, ae = 0, nowK = key(new Date());
+    fc[p].forEach(function (x) { if (x[0] <= nowK && m[x[0]] != null) { a += m[x[0]]; b += x[1]; ae += Math.abs(m[x[0]] - x[1]); n++; } });
+    return { n: n, r: n >= 12 && b > 0 ? Math.max(0.5, Math.min(2, a / b)) : 1, mae: n ? ae / n : null, mMean: n ? a / n : null, fMean: n ? b / n : null };
+  }
+  function draw() {
+    pills(); save();
+    var s = ST.filter(function (x) { return x[0] === +st.station; })[0];
+    // now
+    var out = ['pm25', 'pm10'].map(function (p) {
+      var m = meas(p), last = m[m.length - 1], fc = F[s[0]] ? F[s[0]][p] : [], nowK = key(new Date()), fNow = fc.filter(function (x) { return x[0] <= nowK; }).pop();
+      var v = last ? last[1] : fNow ? fNow[1] : null, isM = !!last, b = v == null ? null : band(p, v);
+      return '<div class="box' + (b != null && b <= 2 ? ' light' : '') + '" style="background:' + (b == null ? '#90a4ae' : COLS[b]) + '"><span>' + (p === 'pm25' ? 'PM2.5' : 'PM10') + ' · µg/m³</span><b>' + (v == null ? '–' : Math.round(v)) + '</b><span class="band">' + (b == null ? 'brak danych' : NAMES[b]) + '</span><span>' + (isM ? 'pomiar, ' + last[0].slice(11, 16) : v != null ? 'model, bez pomiaru' : '') + '</span></div>';
+    }).join('');
+    $('now').innerHTML = out;
+    $('now-src').textContent = M ? 'Pomiary GIOŚ, stacja Kraków, ' + s[1] + '. Ostatnia aktualizacja danych: ' + (M.latest || '–') + '.' : 'Pomiary GIOŚ jeszcze się nie wczytały. Pokazuję model.';
+    if (!F[s[0]]) return;
+    var fc = F[s[0]], corr = $('corr').checked, R = { pm25: ratio('pm25', fc), pm10: ratio('pm10', fc) };
+    var adj = function (p, v) { return corr ? v * R[p].r : v; };
+    // windows
+    var act = ACTS.filter(function (a) { return a[0] === st.act; })[0], dur = act[2], nowD = new Date(), nowK = key(nowD), fut = { pm25: {}, pm10: {} };
+    ['pm25', 'pm10'].forEach(function (p) { fc[p].forEach(function (x) { if (x[0] >= nowK) fut[p][x[0]] = adj(p, x[1]); }); });
+    var starts = Object.keys(fut.pm25).sort().slice(0, 36), W = [];
+    starts.forEach(function (k) {
+      var d = parse(k), h = d.getHours(); if (st.act !== 'air' && (h < 6 || h + dur > 22)) return; if (st.act === 'air' && (h < 6 || h > 23)) return;
+      var v25 = 0, v10 = 0, ok = true;
+      for (var i = 0; i < dur; i++) { var kk = key(new Date(d.getTime() + i * 3600e3)); if (fut.pm25[kk] == null) { ok = false; break; } v25 += fut.pm25[kk]; v10 += (fut.pm10[kk] || 0); }
+      if (ok) W.push({ k: k, d: d, v: v25 / dur, b: Math.max(band('pm25', v25 / dur), band('pm10', v10 / dur)) });
+    });
+    var lim = st.sens === 'sens' ? 1 : 2, best = W.slice().sort(function (a, b) { return a.v - b.v; }), picks = [];
+    best.forEach(function (w) { if (picks.length < 3 && picks.every(function (p) { return Math.abs(p.d - w.d) >= 3 * 3600e3; })) picks.push(w); });
+    var worst = W.slice().sort(function (a, b) { return b.v - a.v; })[0];
+    var day = function (d) { var t = new Date(); t.setHours(0, 0, 0, 0); var dd = Math.round((new Date(d).setHours(0, 0, 0, 0) - t) / 864e5); return dd === 0 ? 'dziś' : dd === 1 ? 'jutro' : 'pojutrze'; };
+    var hh = function (d) { return String(d.getHours()).padStart(2, '0') + ':00'; };
+    var row = function (w, cls, lab) { return '<div class="win ' + cls + '"><span class="t">' + day(w.d) + ' ' + hh(w.d) + '</span><span><span class="dot" style="background:' + COLS[w.b] + '"></span>' + NAMES[w.b] + (lab ? ' · ' + lab : '') + '</span><span style="text-align:right">' + Math.round(w.v) + ' µg/m³</span></div>'; };
+    var good = picks.filter(function (w) { return w.b <= lim; });
+    $('wins').innerHTML = (picks.length ? picks.map(function (w, i) { return row(w, i === 0 ? 'best' : '', i === 0 ? 'najlepiej' : ''); }).join('') : '<p class="empty">Brak prognozy na najbliższe godziny.</p>') + (worst ? row(worst, 'worst', 'najgorzej, unikaj') : '');
+    $('win-note').textContent = !picks.length ? '' : good.length ? act[1] + ': średni PM2.5 w czasie aktywności (' + dur + ' h), wg prognozy' + (corr && R.pm25.n >= 12 ? ' skorygowanej o pomiary' : '') + '. Godziny 6:00 do 22:00.' : 'W najbliższych 36 godzinach żadne okno nie schodzi do poziomu ' + NAMES[lim] + '. ' + (st.sens === 'sens' ? 'Rozważ aktywność w środku.' : 'Najlepsze z dostępnych okien są powyżej.');
+    // chart
+    chart(fc, R, corr);
+    var r = R[st.pol];
+    $('check').innerHTML = r.n >= 12 ? '<b>Jak trafny jest model na tej stacji?</b> W ostatnich ' + r.n + ' godzinach stacja zmierzyła średnio ' + r.mMean.toFixed(1).replace('.', ',') + ' µg/m³, a model podawał ' + r.fMean.toFixed(1).replace('.', ',') + ' µg/m³. Średni błąd godzinowy: ' + r.mae.toFixed(1).replace('.', ',') + ' µg/m³. ' + (Math.abs(r.r - 1) < 0.1 ? 'Model trafia blisko pomiaru.' : 'Model ' + (r.r > 1 ? 'zaniża' : 'zawyża') + ' poziom, więc korekta mnoży prognozę przez ' + r.r.toFixed(2).replace('.', ',') + '.') : '<b>Za mało pomiarów do sprawdzenia modelu.</b> Prognoza jest pokazana bez korekty.';
+    pattern();
+  }
+  function chart(fc, R, corr) {
+    var p = st.pol, m = meas(p), W = Math.max(360, Math.min(900, $('chart').getBoundingClientRect().width || 900)), H = 300, L = 40, B = 34, T = 10, Rr = 10;
+    $('chart').setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    var nowK = key(new Date()), t0 = parse(fc[p][0][0]).getTime(), t1 = parse(fc[p][fc[p].length - 1][0]).getTime();
+    var vals = fc[p].map(function (x) { return corr && x[0] >= nowK ? x[1] * R[p].r : x[1]; }).concat(m.map(function (x) { return x[1]; }));
+    var mx = Math.max(BANDS[p][1] + 5, Math.max.apply(null, vals) * 1.1);
+    var x = function (k) { return L + (parse(k).getTime() - t0) / (t1 - t0) * (W - L - Rr); }, y = function (v) { return H - B - Math.min(v, mx) / mx * (H - B - T); };
+    var g = '', lo = 0;
+    BANDS[p].concat([Infinity]).forEach(function (hi, i) { var top = Math.min(hi, mx); if (lo < mx) g += '<rect x="' + L + '" y="' + y(top) + '" width="' + (W - L - Rr) + '" height="' + (y(lo) - y(top)) + '" fill="' + COLS[i] + '" opacity=".13"/>'; lo = hi; });
+    var step = mx > 150 ? 50 : mx > 60 ? 20 : 10; for (var v = 0; v <= mx; v += step) g += '<text x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v + '</text>';
+    fc[p].forEach(function (pt) { if (pt[0].slice(11, 13) === '00') g += '<line x1="' + x(pt[0]) + '" x2="' + x(pt[0]) + '" y1="' + T + '" y2="' + (H - B) + '" stroke="#d7d2c8"/><text x="' + (x(pt[0]) + 4) + '" y="' + (H - 12) + '">' + pt[0].slice(8, 10) + '.' + pt[0].slice(5, 7) + '</text>'; });
+    var nx = x(nowK); g += '<line x1="' + nx + '" x2="' + nx + '" y1="' + T + '" y2="' + (H - B) + '" stroke="#37474f" stroke-width="1.5"/><text x="' + (nx + 4) + '" y="' + (T + 12) + '" fill="#37474f">teraz</text>';
+    var past = fc[p].filter(function (q) { return q[0] <= nowK; }), futu = fc[p].filter(function (q) { return q[0] >= nowK; });
+    var pl = function (arr, f) { return arr.map(function (q) { return x(q[0]).toFixed(1) + ',' + y(f(q[1])).toFixed(1); }).join(' '); };
+    g += '<polyline fill="none" stroke="#78909c" stroke-width="2" stroke-dasharray="5 4" points="' + pl(past, function (v) { return v; }) + '"/>';
+    g += '<polyline fill="none" stroke="#37474f" stroke-width="2.5" stroke-dasharray="6 4" points="' + pl(futu, function (v) { return corr ? v * R[p].r : v; }) + '"/>';
+    var mm = m.filter(function (q) { return parse(q[0]).getTime() >= t0; });
+    if (mm.length) g += '<polyline fill="none" stroke="#c2185b" stroke-width="2.5" points="' + pl(mm, function (v) { return v; }) + '"/>';
+    $('chart').innerHTML = g;
+    $('legend').innerHTML = '<span><i style="background:#c2185b;height:3px"></i>pomiar GIOŚ</span><span><i style="background:#78909c;height:3px"></i>model, przeszłość</span><span><i style="background:#37474f;height:3px"></i>prognoza' + (corr ? ' (z korektą)' : '') + '</span>' + NAMES.map(function (n, i) { return '<span><i style="background:' + COLS[i] + ';opacity:.5"></i>' + n + '</span>'; }).join('');
+  }
+  var H = null;
+  function pattern() {
+    if (!H) { $('pat-note').textContent = 'Wczytuję historię pomiarów.'; return; }
+    var s = H.stations[String(st.station)], d = s ? s.pm25 : {}, sums = new Array(24).fill(0), cnt = new Array(24).fill(0), days = {};
+    Object.keys(d).forEach(function (k) { var h = +k.slice(11, 13); sums[h] += d[k]; cnt[h]++; days[k.slice(0, 10)] = 1; });
+    var nd = Object.keys(days).length;
+    if (nd < 3) { $('hours').innerHTML = ''; $('pat-note').textContent = 'Zebrane dni: ' + nd + '. Wzorzec pokażę od 3 dni danych. Historia rośnie z każdą godziną, do 60 dni.'; return; }
+    $('hours').innerHTML = sums.map(function (sm, h) { var v = cnt[h] ? sm / cnt[h] : null, b = v == null ? null : band('pm25', v); return '<div title="' + h + ':00 · ' + (v == null ? 'brak' : v.toFixed(1) + ' µg/m³') + '" style="background:' + (b == null ? '#eee' : COLS[b]) + ';opacity:' + (v == null ? .4 : .35 + Math.min(.65, v / 60)) + '"><span class="' + (h % 6 === 0 ? 'k' : '') + '">' + h + '</span></div>'; }).join('');
+    var avg = sums.map(function (sm, h) { return cnt[h] ? sm / cnt[h] : null; }), mxh = avg.indexOf(Math.max.apply(null, avg.filter(function (v) { return v != null; }))), mnh = avg.indexOf(Math.min.apply(null, avg.filter(function (v) { return v != null; })));
+    $('pat-note').textContent = 'Z ' + nd + ' dni pomiarów: najgorzej średnio o ' + mxh + ':00 (' + avg[mxh].toFixed(0) + ' µg/m³), najlepiej o ' + mnh + ':00 (' + avg[mnh].toFixed(0) + ' µg/m³). Mała liczba dni: traktuj jako wskazówkę.';
+  }
+
+  function refresh() { $('wins').innerHTML = '<p class="empty">Wczytuję prognozę…</p>'; draw(); loadForecast().then(draw).catch(function () { $('wins').innerHTML = '<p class="empty">Nie udało się wczytać prognozy. Sprawdź połączenie.</p>'; }); }
+  $('station').addEventListener('change', function () { st.station = +this.value; refresh(); });
+  $('near').addEventListener('click', function () {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(function (p) { var la = p.coords.latitude, lo = p.coords.longitude, best = ST.slice().sort(function (a, b) { return Math.hypot(a[2] - la, (a[3] - lo) * 0.64) - Math.hypot(b[2] - la, (b[3] - lo) * 0.64); })[0]; st.station = best[0]; $('station').value = best[0]; refresh(); }, function () {}, { timeout: 8000 });
+  });
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-act]'), s = e.target.closest('[data-sens]'), p = e.target.closest('[data-pol]');
+    if (a) { st.act = a.getAttribute('data-act'); draw(); }
+    if (s) { st.sens = s.getAttribute('data-sens'); draw(); }
+    if (p) { st.pol = p.getAttribute('data-pol'); document.querySelectorAll('[data-pol]').forEach(function (x) { x.setAttribute('aria-pressed', x === p); }); draw(); }
+  });
+  document.querySelectorAll('[data-pol]').forEach(function (x) { x.setAttribute('aria-pressed', x.getAttribute('data-pol') === st.pol); });
+  $('corr').addEventListener('change', draw);
+  fetch('data/krakow.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) { M = j; draw(); }).catch(function () { draw(); });
+  fetch('data/history.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) { H = j; pattern(); }).catch(function () { $('pat-note').textContent = 'Historia pomiarów jeszcze nie istnieje. Pierwsze zadanie na GitHubie ją utworzy.'; });
+  refresh();
+})();
+</script>
+</body>
+</html>

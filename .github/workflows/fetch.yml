@@ -1,0 +1,38 @@
+# Copies the latest Kraków PM10 and PM2.5 measurements from the GIOŚ API into data/ every hour.
+# The page cannot call GIOŚ directly from the browser, so this job is the bridge.
+name: Fetch GIOŚ data
+
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["scripts/fetch_gios.py", ".github/workflows/fetch.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch
+        run: python scripts/fetch_gios.py
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then echo "No change"; exit 0; fi
+          git commit -m "data: GIOŚ update $(date -u +%Y-%m-%dT%H:%MZ)"
+          git pull --rebase origin main
+          git push
