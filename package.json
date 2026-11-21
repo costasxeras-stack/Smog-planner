@@ -1,0 +1,10 @@
+{
+  "name": "smog-planner",
+  "version": "0.1.0",
+  "description": "Hourly PM2.5 and PM10 from Krak\u00f3w's official stations, a 3-day forecast checked against the measurements, and the best hours for a run, a walk with a child or airing the flat.",
+  "private": true,
+  "scripts": {
+    "serve": "python3 -m http.server 8000"
+  },
+  "license": "MIT"
+}

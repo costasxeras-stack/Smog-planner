@@ -87,6 +87,7 @@ svg text{font:11.5px var(--body);fill:var(--muted)}
     <h2>Jak to działa</h2>
     <ul class="sub" style="padding-left:20px;display:grid;gap:6px">
       <li><b>Pomiary:</b> GIOŚ nie pozwala czytać swojego API bezpośrednio ze strony w przeglądarce. Dlatego co godzinę automatyczne zadanie na GitHubie pobiera pomiary PM10 i PM2.5 z 9 krakowskich stacji i zapisuje je w tym repozytorium. Pomiary GIOŚ to dane bieżące, niezweryfikowane.</li>
+      <li><b>Stacje:</b> nie każda stacja publikuje godzinowe pomiary obu pyłów. Przy stacji bez pomiaru wybranego pyłu aplikacja pokazuje model i mówi o tym wprost.</li>
       <li><b>Prognoza:</b> model CAMS (Copernicus) przez Open-Meteo, w siatce kilkunastu kilometrów. Model wygładza lokalne różnice, dlatego porównuję go z pomiarem stacji z ostatnich 2 dni i mogę skorygować prognozę o średni stosunek pomiaru do modelu (w granicach od 0,5 do 2).</li>
       <li><b>Najlepsze okno:</b> dla każdej godziny startu od teraz do 36 godzin naprzód, między 6:00 a 22:00, liczę średni prognozowany PM2.5 w czasie aktywności i wybieram najniższe. Kategoria okna to gorsza z kategorii PM2.5 i PM10.</li>
       <li><b>Progi indeksu GIOŚ</b> (µg/m³, PM10 / PM2.5): bardzo dobry do 20 / 13, dobry do 50 / 35, umiarkowany do 80 / 55, dostateczny do 110 / 75, zły do 150 / 110, bardzo zły powyżej.</li>
@@ -118,6 +119,10 @@ svg text{font:11.5px var(--body);fill:var(--muted)}
   function save() { try { localStorage.setItem('smog', JSON.stringify(st)); } catch (e) {} }
   $('station').innerHTML = ST.map(function (s) { return '<option value="' + s[0] + '">' + esc(s[1]) + '</option>'; }).join('');
   $('station').value = st.station;
+  function labels() {
+    $('station').innerHTML = ST.map(function (s) { var m = M.stations.filter(function (x) { return x.id === s[0]; })[0], has = m ? [m.pm25.length ? 'PM2.5' : '', m.pm10.length ? 'PM10' : ''].filter(Boolean) : []; return '<option value="' + s[0] + '">' + esc(s[1]) + (has.length === 2 ? '' : has.length ? ' (pomiar: ' + has[0] + ')' : ' (tylko prognoza)') + '</option>'; }).join('');
+    $('station').value = st.station;
+  }
   function pills() {
     $('acts').innerHTML = ACTS.map(function (a) { return '<button type="button" class="chip" data-act="' + a[0] + '" aria-pressed="' + (st.act === a[0]) + '">' + a[1] + '</button>'; }).join('');
     $('sens').innerHTML = SENS.map(function (a) { return '<button type="button" class="chip" data-sens="' + a[0] + '" aria-pressed="' + (st.sens === a[0]) + '">' + a[1] + '</button>'; }).join('');
@@ -224,7 +229,7 @@ svg text{font:11.5px var(--body);fill:var(--muted)}
   });
   document.querySelectorAll('[data-pol]').forEach(function (x) { x.setAttribute('aria-pressed', x.getAttribute('data-pol') === st.pol); });
   $('corr').addEventListener('change', draw);
-  fetch('data/krakow.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) { M = j; draw(); }).catch(function () { draw(); });
+  fetch('data/krakow.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) { M = j; labels(); draw(); }).catch(function () { draw(); });
   fetch('data/history.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) { H = j; pattern(); }).catch(function () { $('pat-note').textContent = 'Historia pomiarów jeszcze nie istnieje. Pierwsze zadanie na GitHubie ją utworzy.'; });
   refresh();
 })();
