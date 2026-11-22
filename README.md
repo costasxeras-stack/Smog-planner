@@ -64,9 +64,9 @@ The model gap is a product measure: if it stays large, the correction becomes th
 2. Add other Polish cities from the same API
 3. A morning summary as an installable web app notification
 
-## How it was built
+## My role
 
-I framed the problem, made the product calls and wrote the conclusions. Claude (Anthropic) was my engineering partner for the code. 
+I framed the problem, made the product calls and wrote the conclusions. 
 
 ## Run it yourself
 
